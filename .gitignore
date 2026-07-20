@@ -1,0 +1,8 @@
+﻿.env
+.tmp/
+output/
+node_modules/
+__pycache__/
+*.pyc
+test_repos/*/
+!test_repos/.gitkeep
