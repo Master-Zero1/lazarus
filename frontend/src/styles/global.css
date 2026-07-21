@@ -316,6 +316,41 @@ a {
   background: var(--card);
 }
 
+.panel-header__actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.report-export-button {
+  min-height: 2.2rem;
+  padding: 0.48rem 0.66rem;
+  color: #fff;
+  background: var(--blue);
+  box-shadow: var(--shadow-small);
+  font-size: 0.64rem;
+}
+
+.report-export-button:hover:not(:disabled),
+.report-export-button:focus-visible {
+  color: var(--ink);
+  background: var(--yellow);
+}
+
+.report-export-notice {
+  margin: 0.8rem 1rem 0;
+  border-left: 4px solid var(--green);
+  padding: 0.55rem 0.7rem;
+  color: var(--ink);
+  background: #e7f4e9;
+  font-family: var(--font-data);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .panel-title {
   margin: 0.2rem 0 0;
   color: var(--ink);
@@ -1321,6 +1356,14 @@ a {
 
   .panel-header {
     align-items: center;
+  }
+
+  .panel-header__actions {
+    max-width: 56%;
+  }
+
+  .report-export-button {
+    font-size: 0.56rem;
   }
 
   .panel-title {

@@ -53,6 +53,13 @@ npm.cmd run preview
 - `GET /runs/{id}` is polled every two seconds for an active run.
 - `POST /runs/{id}/cancel` is used only by the visible Cancel mission control.
 - `GET /runs/{id}/artifacts` and its artifact endpoint power the evidence viewer.
+  They expose Lazarus-generated reports, receipts, logs, and evidence only;
+  the local cloned repository and its `.git` metadata are never browser-visible.
+- **Download evidence PDF** produces a searchable, client-side PDF packet from
+  available Revival, Health, and triage reports; the diagnosis and code
+  inventories; generated documentation; and the clone, draft-PR, and pipeline
+  receipts. Raw GitHub snapshots and the private checkout are intentionally not
+  exported.
 - `GET /health` powers the API status indicator.
 
 The frontend displays stage state only when the API provides it. While an
@@ -73,6 +80,9 @@ It communicates only with the configured Lazarus API origin.
 - `prefers-reduced-motion` disables the small pipeline and loading animations.
 - Space Grotesk is used for display labels, Inter for body text, and IBM Plex
   Mono for run IDs, timestamps, paths, and artifacts.
+- `jspdf` 4.2.1 creates the downloadable PDF packet entirely in the browser. Its
+  layout uses the same paper, ink, yellow, and blue neo-brutalist palette as
+  the dashboard while preserving selectable report text.
 
 ## Manual check
 
@@ -83,5 +93,8 @@ It communicates only with the configured Lazarus API origin.
    available artifacts appear.
 4. Open a Markdown or JSON artifact and confirm it renders inline; download a
    binary artifact instead.
+5. Select **Download evidence PDF** after a run completes. Confirm the
+   downloaded packet contains the available reports, documentation, PR preview,
+   and receipt, while excluding raw snapshots and the clone.
 5. At a phone viewport, confirm the bottom navigation remains available while
    the panels stack vertically.
