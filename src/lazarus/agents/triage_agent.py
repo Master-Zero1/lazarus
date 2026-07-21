@@ -70,6 +70,19 @@ STRUCTURAL_TOKENS = {
 }
 PYTHON3_RE = re.compile(r"(?<![A-Za-z0-9_])python\s*3(?:\.\d+)?(?![0-9.])", re.IGNORECASE)
 PYTHON27_RE = re.compile(r"(?<![A-Za-z0-9_])python\s*(?:==\s*)?2\.7(?![0-9.])", re.IGNORECASE)
+DATA_QUALITY_DEFECT_RE = re.compile(
+    r"\b(?:missing|incorrect|wrong|doubled|duplicate|outdated|not\s+up-to-date)\b",
+    re.IGNORECASE,
+)
+# A defect word by itself is not evidence of a data-quality report: it can
+# describe a JavaScript runtime failure, a build defect, or many other topics.
+# Keep this conservative and domain-neutral; related-topic clustering must not
+# turn a generic word such as "incorrect" into a game-data recommendation.
+DATA_QUALITY_CONTEXT_RE = re.compile(
+    r"\b(?:data(?:set)?|record(?:s)?|csv|metadata|catalog(?:ue)?|classification(?:s)?|"
+    r"pokemon|move(?:s)?|cry|cries|generation(?:s)?|game(?:s)?|item(?:s)?|species|image(?:s)?)\b",
+    re.IGNORECASE,
+)
 TOPIC_LABELS = {
     "python_3_compatibility": "Python 3 compatibility",
     "terminal_progress": "terminal/progress output",
@@ -204,7 +217,7 @@ def _topic_names(item: dict[str, Any]) -> list[str]:
     if PYTHON3_RE.search(text):
         topics.append("python_3_compatibility")
     title_lowered = str(item.get("title") or "").lower()
-    if any(marker in title_lowered for marker in ("missing", "incorrect", "wrong", "doubled", "duplicate", "outdated", "not up-to-date")):
+    if DATA_QUALITY_DEFECT_RE.search(title_lowered) and DATA_QUALITY_CONTEXT_RE.search(text):
         topics.append("data_quality")
     if any(marker in lowered for marker in ("database", "schema", "sqlalchemy", "migration", "postgres", "sqlite")):
         topics.append("database_schema")
@@ -254,7 +267,7 @@ def _issue_topic_rationale(issue: dict[str, Any], topic: str | None, cluster: li
     if topic == "data_quality":
         return (
             subject_prefix + f"Its title identifies a data-quality concern ({_safe_text(issue.get('title'), 120)}), rather than a demonstrated runtime failure. {comment_note} The issue remains independently actionable despite related data reports.",
-            "Compare the named records or descriptions with the authoritative game-data source, identify the affected import/source file, and only then consolidate genuinely overlapping corrections.",
+            "Compare the named data records or descriptions with the project's authoritative source, identify the affected import/source file, and only then consolidate genuinely overlapping corrections.",
         )
     if topic == "database_schema":
         return (

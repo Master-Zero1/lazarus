@@ -226,13 +226,13 @@ def _render_observed_facts(
         raise RuntimeError("Test structure inventory has malformed test-file or test-directory data: expected lists.")
     if test_files:
         facts.append(
-            "Static test inventory detected {0} conventionally named Python test file(s).".format(len(test_files))
+            "Static test inventory detected {0} conventionally named test file(s).".format(len(test_files))
         )
     else:
-        facts.append("Static test inventory detected no conventionally named Python test files.")
+        facts.append("Static test inventory detected no conventionally named test files.")
     if test_directories:
         facts.append(
-            "Static test inventory detected root test directory/directories: {0}.".format(
+            "Static test inventory detected test directory/directories: {0}.".format(
                 ", ".join("`{0}`".format(_quote(path)) for path in test_directories)
             )
         )

@@ -34,8 +34,8 @@ outputs:
 3. `execution/parse_ci_config.py` to inventory declared CI workflows and their
    runtimes; absence of CI is a finding, not an error.
 4. `execution/inventory_code_structure.py` to statically inventory
-   conventionally named test files and root test directories. This is a
-   presence-only finding; it does not run the tests or assess their coverage.
+   conventionally named test files and test directories at any repository
+   depth. This presence-only finding does not run the tests or assess coverage.
 
 The caller must supply a clone created by `execution/clone_repo.py`; this SOP
 does not clone, mutate, or fetch a repository itself.

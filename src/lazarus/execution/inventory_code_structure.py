@@ -23,6 +23,7 @@ CONFIGURATION_SUFFIXES = {".cfg", ".conf", ".ini", ".json", ".toml", ".yaml", ".
 DOCUMENTATION_SUFFIXES = {".md", ".rst", ".txt", ".adoc"}
 DATA_DIRECTORY_NAMES = {"data", "dataset", "datasets", "training_data", "test_data", "ck+48"}
 ASSET_DIRECTORY_NAMES = {"assets", "images", "demo", "examples", "static"}
+TEST_DIRECTORY_NAMES = {"test", "tests", "spec", "specs", "__tests__"}
 ARGPARSE_RE = re.compile(r"\bargparse\.ArgumentParser\s*\(")
 MAIN_GUARD_RE = re.compile(r"if\s+__name__\s*==\s*['\"]__main__['\"]")
 CONSOLE_SCRIPT_RE = re.compile(
@@ -294,6 +295,42 @@ def _data_path(repo_path: Path, path: Path, classification: str) -> dict[str, An
     return {"path": _relative(repo_path, path), "classification": classification, "file_count": file_count}
 
 
+def _test_paths(repo_path: Path, all_files: list[Path]) -> tuple[list[Path], list[str]]:
+    """Detect conventionally named tests across languages without executing files.
+
+    A test harness may be JavaScript, TypeScript, HTML, or another language;
+    restricting discovery to Python files misreports mixed-language repositories
+    as having no tests.  Directory names and common ``*.test.*``/``*_test.*``
+    patterns are static naming evidence only, not proof that tests run.
+    """
+
+    test_files: list[Path] = []
+    test_directories: set[str] = set()
+    for path in all_files:
+        relative = path.relative_to(repo_path)
+        parent_parts = relative.parts[:-1]
+        in_test_directory = any(part.casefold() in TEST_DIRECTORY_NAMES for part in parent_parts)
+        stem = path.stem.casefold()
+        conventionally_named_file = (
+            stem.startswith("test_")
+            or stem.endswith("_test")
+            or stem == "test"
+            or stem.endswith(".test")
+            or stem.endswith(".spec")
+        )
+        if in_test_directory or conventionally_named_file:
+            test_files.append(path)
+        current = path.parent
+        while current != repo_path:
+            if current.name.casefold() in TEST_DIRECTORY_NAMES:
+                test_directories.add(_relative(repo_path, current))
+            current = current.parent
+    return (
+        sorted(test_files, key=lambda item: _relative(repo_path, item).casefold()),
+        sorted(test_directories, key=str.casefold),
+    )
+
+
 def inventory_code_structure(repo_path: Path) -> dict[str, Any]:
     """Inventory code, documentation, data, configuration, and test paths."""
     repo_path = repo_path.resolve()
@@ -365,17 +402,7 @@ def inventory_code_structure(repo_path: Path) -> dict[str, Any]:
         elif name in ASSET_DIRECTORY_NAMES:
             data_paths.append(_data_path(repo_path, directory, "demo_or_visual_asset"))
 
-    test_files = [
-        path for path in python_files
-        if any(part.lower() in {"test", "tests"} for part in path.relative_to(repo_path).parts[:-1])
-        or path.name.lower().startswith("test_")
-        or path.name.lower().endswith("_test.py")
-    ]
-    test_directories = [
-        _relative(repo_path, directory)
-        for directory in root_directories
-        if directory.name.lower() in {"test", "tests"}
-    ]
+    test_files, test_directories = _test_paths(repo_path, all_files)
     documentation_files = [
         {
             "path": _relative(repo_path, path),
@@ -389,8 +416,8 @@ def inventory_code_structure(repo_path: Path) -> dict[str, Any]:
     findings: list[dict[str, str]] = []
     if not configuration_files:
         findings.append({"code": "no_configuration_files_found", "message": "No supported repository configuration files were found."})
-    if not test_files:
-        findings.append({"code": "no_tests_detected", "message": "No Python test files or root test directories were detected by naming convention."})
+    if not test_files and not test_directories:
+        findings.append({"code": "no_tests_detected", "message": "No conventionally named test files or test directories were detected by naming convention."})
 
     return {
         "schema_version": 1,
@@ -404,7 +431,7 @@ def inventory_code_structure(repo_path: Path) -> dict[str, Any]:
         "data_paths": data_paths,
         "tests": {
             "test_directories": test_directories,
-            "test_files": [_relative(repo_path, path) for path in sorted(test_files, key=lambda item: _relative(repo_path, item).lower())],
+            "test_files": [_relative(repo_path, path) for path in test_files],
         },
         "documentation_files": documentation_files,
         "findings": findings,

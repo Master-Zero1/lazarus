@@ -32,6 +32,28 @@ _TEXT_MEDIA_TYPES = {
     ".txt": "text/plain; charset=utf-8",
 }
 
+# A run directory also contains the local ``clone/`` checkout used by the
+# pipeline.  That checkout is an implementation detail, not an API artifact:
+# exposing it would disclose unreviewed repository contents and ``.git``
+# metadata through the browser.  Keep the public artifact surface limited to
+# Lazarus-authored reports, receipts, logs, and the two generated-evidence
+# directories produced by the orchestrator.
+_PUBLIC_TOP_LEVEL_ARTIFACTS = frozenset(
+    {
+        "clone_receipt.json",
+        "draft_pr_preview.json",
+        "health_report.md",
+        "issues_snapshot.json",
+        "prs_snapshot.json",
+        "revival_report.md",
+        "run_receipt.json",
+        "stderr.log",
+        "stdout.log",
+        "triage_report.md",
+    }
+)
+_PUBLIC_ARTIFACT_DIRECTORIES = frozenset({"diagnosis_findings", "docs_draft"})
+
 app = FastAPI(title="Lazarus API", version="0.1.0")
 
 # Deliberately permissive for the local hackathon frontend. Tighten this before
@@ -212,6 +234,26 @@ def _artifact_candidate(output_dir: Path, artifact_path: str) -> Path:
     return candidate
 
 
+def _is_public_artifact(output_dir: Path, candidate: Path) -> bool:
+    """Return whether a contained file is an intentionally exposed API artifact.
+
+    Containment prevents traversal; this allowlist separately prevents a valid
+    contained path from reaching the private local checkout held under
+    ``clone/``.  Resolve first so a symlink cannot masquerade as a generated
+    artifact directory.
+    """
+
+    try:
+        relative = candidate.resolve().relative_to(output_dir.resolve())
+    except ValueError:
+        return False
+    if not relative.parts:
+        return False
+    if len(relative.parts) == 1:
+        return relative.name in _PUBLIC_TOP_LEVEL_ARTIFACTS
+    return relative.parts[0] in _PUBLIC_ARTIFACT_DIRECTORIES
+
+
 def _media_type(path: Path) -> str:
     """Provide predictable text/JSON types for generated Lazarus artifacts."""
 
@@ -278,14 +320,14 @@ def get_run(run_id: str) -> RunDetail:
 
 @app.get("/runs/{run_id}/artifacts", response_model=ArtifactList)
 def list_artifacts(run_id: str) -> ArtifactList:
-    """List every current regular file under an existing run directory."""
+    """List generated Lazarus artifacts, never the private local checkout."""
 
     output_dir = _run_output_dir(_require_run(run_id))
     root_resolved = output_dir.resolve()
     artifacts = [
         path.resolve().relative_to(root_resolved).as_posix()
         for path in output_dir.rglob("*")
-        if path.is_file() and _is_within(path, output_dir)
+        if path.is_file() and _is_within(path, output_dir) and _is_public_artifact(output_dir, path)
     ]
     return ArtifactList(run_id=run_id, artifacts=sorted(artifacts))
 
@@ -296,6 +338,8 @@ def get_artifact(run_id: str, artifact_path: str) -> FileResponse:
 
     output_dir = _run_output_dir(_require_run(run_id))
     candidate = _artifact_candidate(output_dir, artifact_path)
+    if not _is_public_artifact(output_dir, candidate):
+        raise HTTPException(status_code=404, detail="Artifact is not exposed by the API.")
     if not candidate.exists():
         raise HTTPException(status_code=404, detail="Artifact not found yet.")
     if not candidate.is_file():

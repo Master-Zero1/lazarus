@@ -59,7 +59,7 @@ class RunDetail(RunSummary):
 
 
 class ArtifactList(BaseModel):
-    """The current regular files under one server-owned run directory."""
+    """Lazarus-generated files intentionally exposed for one server-owned run."""
 
     run_id: str
     artifacts: list[str]
