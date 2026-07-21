@@ -1,585 +1,430 @@
 <div align="center">
 
-# LAZARUS
+# Lazarus
 
-### Turn an abandoned open-source repository into an evidence-backed revival plan — without touching its source code.
+### Evidence-backed diagnosis and documentation regeneration for stale, abandoned-but-valuable open-source repositories.
 
-**Diagnose the real state. Rebuild honest documentation. Untangle the backlog. Hand a maintainer a safe first move.**
-
-[What it solves](#the-problem) · [What one run creates](#what-happens-in-one-run) · [Verified results](#what-is-actually-verified) · [Run locally](#run-lazarus-locally)
+Lazarus tells a maintainer what is actually in a codebase, what is actually wrong, and what a responsible revival would require. It does not repair or modify the target repository.
 
 </div>
 
 ---
 
-## The one-minute pitch
-
-A repository can be valuable and still be effectively unusable.
-
-Maybe its README is six years old. Maybe it only runs on Python 2.7. Maybe
-there are 100 open issues, a half-finished pull request with a useful fix, and
-no reliable way for a new maintainer to know what is real, what is stale, and
-what should happen next.
-
-**Lazarus turns that uncertainty into a reviewed evidence packet.**
-
-Give it a repository URL and expected GitHub identity. Lazarus creates a
-read-only local clone, inspects the code and configuration without executing
-untrusted project code, reads the public issue and pull-request backlog, and
-produces:
-
-1. a **Health Report** — runtime, dependency, CI, test-discovery, and risk
-   findings;
-2. a **documentation draft** — a source-backed README, architecture notes,
-   and contribution guide;
-3. a **Triage Report** — a prioritized backlog with evidence and confidence;
-4. a **documentation-only draft-PR preview** — exactly what a maintainer
-   could review before any write is allowed; and
-5. a **Revival Report** — the practical answer to: *should we revive this,
-   and what should a human do first?*
-
-Lazarus is not an autonomous code-repair bot. It is the careful research
-assistant a maintainer needs before deciding whether a revival effort is
-worth starting.
-
 ## The problem
 
-Abandoned repositories are rarely abandoned because every line of code became
-worthless. More often, the project lost its map.
+Open-source software does not always die because it stops working. Often, it dies because nobody can tell, at a glance, whether it still works, and figuring that out takes more effort than most people are willing to spend before they have even decided the project is worth their time.
 
-| What a new maintainer sees | Why it is a serious problem |
-| --- | --- |
-| An old README | It may document commands, dependencies, or project structure that no longer match the code. |
-| No requirements file, or an old dependency declaration | It is hard to tell whether a compatibility problem is real, guessed, pinned, or only a lower bound. |
-| Missing or stale CI | A green-looking configuration file does not prove the checks still run; no CI tells you something important too. |
-| Hundreds of old issues | Some are duplicates, some are still real, some are closed without useful resolution evidence, and some contain valuable work that simply went quiet. |
-| A pull request with conflicts | It may be obsolete — or it may be the most useful unmerged fix in the repository. |
-| A fork and an upstream repository | A careless automation tool can write to the wrong place, leak clone contents, or create duplicate pull requests. |
+Every maintainer who has inherited an abandoned repository knows the pattern. The README is stale. The dependency file, if there is one, contains version bounds nobody has exercised in years. The issue tracker has forty open questions and a pile of old pull requests. One may be noise; another may be a real fix that simply never got merged. You do not know whether the project runs, what it expects from a contributor, or where to begin. So you close the tab.
 
-Today, a person must manually reconstruct all of that context before writing a
-single line of code. That is slow, error-prone, and discouraging.
+**Lazarus exists to close the gap between “I do not know” and “I know exactly what needs human attention.”**
 
-Lazarus makes the first pass repeatable. It collects evidence, names what it
-cannot verify, and gives the next human a concrete, reviewable plan instead of
-a vague claim that the repository is “dead.”
+It is not a repair bot. It does not edit source code, install unknown dependencies, execute repository code, run the target test suite, close issues, or merge pull requests. It reads a repository the way a careful senior engineer would on their first day inheriting it, then returns evidence instead of a guess.
 
-## What happens in one run
+Point Lazarus at a repository and it can:
 
-    A Git URL and expected repository identity
-                    |
-                    v
-    1. Read-only clone
-                    |
-                    v
-    2. Health diagnosis
-       - manifests, README fallback, CI, static test discovery
-                    |
-                    v
-    3. Source-backed documentation
-       - modules, entry points, CLI options, imports, data paths
-                    |
-                    v
-    4. Issue and pull-request triage
-       - categories, clusters, evidence, confidence, limitations
-                    |
-                    v
-    5. Documentation PR preview
-       - only README.md, ARCHITECTURE.md, CONTRIBUTING.md
-                    |
-                    v
-    6. Revival Report and Evidence PDF
-       - a human decision packet, not an automated code change
+- **Diagnose** declared runtimes, dependencies, CI configuration, and statically discovered test paths. It distinguishes parsed manifests from README fallback evidence, exact dependency pins from lower bounds, and facts from unknowns.
+- **Regenerate documentation from actual code structure** instead of copying a stale README. It statically inventories packages, entry points, imports, CLI definitions, configuration, data paths, tests, and documentation files.
+- **Triage an issue and pull-request backlog** into duplicate/resolved, obsolete, still valid, and **valuable but stalled by inactivity**. An old conflicted pull request is not automatically noise.
+- **Preview a documentation-only draft pull request** against an operator-controlled fork. A live draft PR is separately approval-gated; application code is never included.
+- **Synthesize a Revival Report** with an executive summary, risks, unknowns, artifact traceability, and a phased human decision checklist.
 
-Every stage leaves a named artifact or receipt behind. If a stage cannot
-continue safely, Lazarus halts or produces a clearly marked partial report; it
-does not quietly fill gaps with guesses.
+The important property is not that Lazarus produces a polished report. It is that the report is built from identifiable evidence. Material findings retain source paths, API-snapshot references, or prior-stage artifact paths. Unknowns are named instead of silently omitted. Confidence is tied to the available evidence, not merely to the fact that a data object exists.
 
-### What a maintainer receives
+**Lazarus does not revive dead code. It explains what reviving it would take, so a maintainer can decide whether the work is worth doing and start prepared.**
 
-| Deliverable | Plain-language answer it provides |
-| --- | --- |
-| Health Report | “What is this project actually tied to, and what might block a revival?” |
-| Regenerated README | “What does the code appear to do, and what are the real ways into it?” |
-| Architecture Notes | “Which packages, modules, data paths, and imports matter?” |
-| Contributing Guide | “How can a future contributor approach the project responsibly?” |
-| Triage Report | “Which issues are noise, which are still relevant, and which old PRs deserve attention?” |
-| Draft-PR preview | “What documentation-only change would be proposed, exactly?” |
-| Revival Report | “What should a human decide now, later, and only after more verification?” |
-| Evidence PDF | “How can I share the result with judges, maintainers, or teammates in one polished packet?” |
+## Architecture
 
-## Why this is different
+Lazarus separates instructions, judgement, and deterministic operations.
 
-There are many tools that can scan a repository, summarize a README, or list
-issues. Lazarus is built around the gaps between those tools.
+```text
+Layer 1: Directives
+    Markdown SOPs in directives/ define goals, inputs, outputs,
+    safety boundaries, and edge cases.
 
-| Typical shortcut | Lazarus approach |
-| --- | --- |
-| “The README says it uses Python 2.7, so that must be true.” | Preserve the source of the claim and distinguish a README fallback from a parsed manifest. |
-| “There is a CI file, so CI works.” | Report configuration presence separately from verified operational status. |
-| “These three issues contain similar words, so close them as duplicates.” | Separate textual duplicate detection from semantic topic clustering. Similar topic is not duplicate proof. |
-| “This pull request is old, so it is obsolete.” | Use its actual state, description, merge metadata, and activity. Classify valuable but stalled work separately. |
-| “A report is missing, so call the whole run successful anyway.” | Name missing or halted artifacts and make the final report partial when evidence is incomplete. |
-| “The target project is untrusted, but run its setup command to learn more.” | Never execute target code as part of diagnosis or documentation inventory. |
-| “Open a helpful PR automatically.” | Preview first; any real write is explicitly approved, fork-validated, documentation-only, and always a draft. |
+Layer 2: Orchestration
+    Agents in src/lazarus/agents/ read the SOPs, validate artifact
+    identity, route stages, and synthesize bounded conclusions.
 
-The result is not just an AI summary. It is an **evidence chain** that a
-maintainer can inspect, challenge, and use.
+Layer 3: Execution
+    Deterministic scripts in src/lazarus/execution/ clone, inspect,
+    parse, fetch, and prepare guarded PR actions.
+```
 
-## A real maintainer story
+The current pipeline uses one resolved local checkout:
 
-Imagine inheriting an image-recognition repository with a promising model,
-several datasets, and years of accumulated questions.
+```text
+Clone
+  -> Diagnose
+  -> Generate documentation
+  -> Triage issues and pull requests
+  -> Draft-PR preview
+  -> Synthesize Revival Report
+```
 
-Without Lazarus, you might spend a weekend discovering that:
+The optional API and frontend are not additional decision-making layers. The
+API launches the installed `lazarus` command in a separate process; the
+frontend communicates only with that local API.
 
-- the project declares Python 2.7 in its own materials;
-- its PyTorch statement is a lower bound, not a precise modern dependency
-  lock;
-- there is no CI configuration;
-- multiple issues independently ask about Python 3 compatibility; and
-- an old CPU-support pull request has conflicts but may still contain useful
-  work.
+### Layer 2 agents
 
-With Lazarus, those facts arrive as labeled observations in the Health Report
-and Triage Report. The new documentation reflects the actual entry-point
-scripts, model package, transforms, and datasets found statically in the
-source. The maintainer gets a safe first documentation PR preview and a
-decision checklist — without Lazarus changing application code or assuming
-that the old project can run.
+- `diagnosis_agent.py` runs the required deterministic diagnosis inventory
+  scripts and synthesizes their output into a Health Report. It does not fix
+  the target project or open a pull request.
+- `docs_agent.py` calls the static structure inventory and writes draft
+  documentation outside the target clone. It does not execute or modify target
+  code.
+- `triage_agent.py` reads supplied GitHub snapshots and makes non-destructive
+  recommendations. It does not close, label, merge, or comment on issues or
+  pull requests.
+- `pr_agent.py` reads the draft-PR SOP and delegates to the guarded execution
+  script. It does not duplicate fork verification, file allowlisting, or
+  GitHub-write safety logic.
+- `synthesis_agent.py` validates and combines existing artifacts into a
+  Revival Report. It does not re-run inventory, fetch GitHub data, or
+  re-investigate the repository.
+- `orchestrator.py` runs the complete ordered pipeline from one clone and
+  always invokes the PR stage in preview mode. It never forwards live-execute
+  approval to the PR agent.
 
-That is the point: **make an uncertain revival effort legible before anyone
-tries to modernize it.**
+### Layer 3 execution scripts
 
-## The Lazarus pipeline
+The current deterministic scripts are:
 
-Lazarus uses a three-layer design. This is not just a folder convention; it
-keeps non-deterministic judgement away from low-level operations and makes the
-system much easier to audit.
+```text
+clone_repo.py                   Read-only Git clone with a receipt
+inventory_manifests.py          Manifest and documented-runtime inventory
+check_dependency_freshness.py   Offline constraint classification
+parse_ci_config.py              CI configuration inventory
+inventory_code_structure.py     Static AST and source-tree inventory
+fetch_issues.py                 Read-only GitHub issue metadata fetch
+fetch_prs.py                    Read-only GitHub pull-request metadata fetch
+open_draft_pr.py                Preview or explicitly approved draft-PR action
+```
 
-    Layer 1 — Directives
-        Markdown SOPs define goals, inputs, outputs, safety rules,
-        and edge cases for every stage.
+## How this was built with Codex
 
-    Layer 2 — Agents
-        Orchestration agents read the SOPs, validate artifacts,
-        make bounded report-level judgements, and stop safely.
+Lazarus was built by Master-Zero1 with Codex and GPT-5.6 as an engineering
+collaborator. The project was not generated in one pass.
 
-    Layer 3 — Execution
-        Narrow deterministic scripts clone, inspect files, parse AST,
-        fetch public GitHub metadata, and prepare guarded PR actions.
+The process started with the directives, then Layer 3 script stubs, then real
+logic verified stage by stage against
+`WuJie1010/Facial-Expression-Recognition.Pytorch`. Documentation inventory,
+dependency diagnosis, CI detection, issue triage, draft-PR preview, and
+synthesis were each checked before the next stage was added.
 
-### Stage 1 — Clone, but do not mutate
+The same pipeline was then exercised against `veekun/pokedex`, a structurally
+different repository with conventional manifests, package entry points, a much
+larger issue backlog, GitHub Actions, and a Travis configuration. That exposed
+the difference between a repository that has no conventional manifest and one
+whose declarations can be parsed directly.
 
-The clone script uses the system Git CLI with an explicit timeout. It accepts
-public HTTPS or Git URLs, resolves the checked-out commit SHA, and writes a
-receipt. It does not use GitHub tokens, create a fork, or merge into an
-existing directory.
+A dedicated audit pass found real cross-cutting problems. They were fixed and
+regression-checked against the fixture repositories:
 
-The orchestrator then verifies that the local clone's identity matches the
-expected owner and repository. A clone of the wrong project is not allowed to
-flow into a report for the requested project.
+- **Artifact identity could be blended across repositories.** A diagnosis from
+  one local checkout could previously be paired with another repository’s
+  remote data. Artifact identity is now validated at every stage boundary.
+  A supplied Pokedex documentation inventory paired with the
+  Facial-Expression expected upstream is rejected with a message beginning
+  `Repository identity mismatch`, rather than producing a believable but
+  invalid report.
+- **Duplicate detection was too trusting of shared tracker boilerplate.**
+  Migrated Pokedex issues shared structural Redmine headers, which inflated
+  text-overlap scores. The triage logic now removes that migration wrapper
+  before comparing the meaningful issue content.
+- **A generic resolution signal was too broad.** The phrase “duplicate of”
+  could describe a domain concept, such as a duplicate game-data record,
+  rather than an issue tracker relationship. Resolution matching was narrowed
+  so it requires a tracker-specific signal.
+- **A receipt status alone was not enough to prove a live PR.** Synthesis now
+  requires the complete live-receipt shape: live mode, a created commit SHA,
+  a canonical GitHub pull-request URL, and `target.draft: true`. A status
+  string by itself cannot be presented as proof of a draft PR.
+- **Malformed snapshots could look empty.** Null collections, wrong JSON
+  top-level types, and all-non-object items are now rejected or disclosed as
+  exclusions rather than producing a clean-looking report with no
+  classifications.
 
-### Stage 2 — Diagnose the actual health of the project
-
-Diagnosis is read-only and static. It looks for conventional dependency
-manifests such as setup.py, package.json, requirements.txt, and pyproject.toml.
-
-Some old projects do not have a modern manifest at all. In that case, Lazarus
-does not pretend there is no dependency information. It can use documented
-runtime declarations from the repository README as a **labeled fallback**.
-The Health Report says where every finding came from.
-
-The diagnosis stage also:
-
-- distinguishes exact pins from lower-bound-only declarations;
-- inventories CI configuration or reports its absence as a finding;
-- statically detects likely test files across Python, JavaScript, HTML, and
-  common test-directory conventions;
-- identifies blockers, human-review priorities, and explicitly unknown facts;
-  and
-- never installs dependencies or runs the target application.
-
-### Stage 3 — Rebuild documentation from source evidence
-
-Lazarus does not trust a stale README to describe a stale project. Instead, it
-performs static code inventory:
-
-- packages, modules, top-level functions, classes, signatures, and docstrings;
-- local import relationships;
-- configuration, data, documentation, and test paths;
-- packaging entry points, including console_scripts declarations; and
-- argparse definitions: flags, types, defaults, and help text.
-
-Python AST parsing is used for source inspection. A discovered command is
-described as a **static CLI candidate**, not a command that Lazarus has
-verified by executing. If source code contains a copy-pasted or inconsistent
-help string, the documentation evidence names it as an upstream source
-observation instead of silently “fixing” the project.
-
-From that inventory, Lazarus drafts:
-
-- README.md
-- ARCHITECTURE.md
-- CONTRIBUTING.md
-- documentation_evidence.md
-
-These are drafts for human review. They are not silently committed into a
-target repository.
-
-### Stage 4 — Triage the backlog without treating it as noise
-
-The triage stage makes read-only GitHub API requests for issue and pull-request
-metadata, then classifies each item into one of four categories:
-
-| Category | Meaning |
-| --- | --- |
-| Duplicate or resolved | There is concrete duplicate or resolution evidence in the available snapshot. |
-| Obsolete | The item is no longer relevant based on available evidence. |
-| Still valid | The item describes an unresolved concern that remains plausible and actionable. |
-| Valuable but stalled by inactivity | The work or proposal appears useful, but activity stopped; it deserves human review rather than dismissal. |
-
-Each rationale is specific to the item rather than a repeated template.
-Related requests can be clustered around a shared topic — for example,
-compatibility questions — but that relationship is not treated as proof that
-they are duplicates.
-
-The report also says what it did not inspect. If comment bodies, review
-threads, or PR diffs were not fetched, it will not claim those sources prove a
-resolution. Inactivity is based on last update time, not creation date.
-
-### Stage 5 — Prepare one safe documentation PR
-
-The only optional write path is intentionally narrow.
-
-Before anything can be created, Lazarus requires explicit operator approval
-and verifies the operator-controlled fork against its expected upstream. It
-also checks for an existing matching open documentation PR and validates that
-the candidate set contains only:
-
-    README.md
-    ARCHITECTURE.md
-    CONTRIBUTING.md
-
-Preview mode is the default. A real pull request, when approved, is always a
-draft. Lazarus never merges a pull request and never changes target
-application code, dependencies, or tests.
-
-### Stage 6 — Build the Revival Report
-
-The synthesis stage only reads earlier Lazarus artifacts. It does not perform
-a new investigation just to make the final report look complete.
-
-It checks repository identity on every artifact before combining them. A
-Facial-Expression Health Report and a Pokedex Triage Report, for example, are
-rejected as an identity conflict rather than silently blended.
-
-If some valid core artifacts are available, Lazarus can write a **partial
-Revival Report** that clearly names the missing or halted stages. If none are
-usable, it stops rather than manufacturing a conclusion.
+After the pipeline work, Lazarus was packaged as `lazarus-revival`, then
+wrapped in an optional local FastAPI transport, then given a React dashboard
+and Evidence PDF export. The core pipeline remains standard-library-only.
 
 ## What is actually verified
 
-Lazarus has been exercised against real open-source repositories and targeted
-negative cases. GitHub state changes over time, so repository findings below
-describe what was observed during verification, not permanent statements about
-those projects.
+The rows below come from saved receipts and generated reports in this
+repository. GitHub state can change after a snapshot or receipt is created, so
+the linked PR facts describe the recorded action rather than a claim about
+current remote state.
 
 | Case | Verified result |
 | --- | --- |
-| Facial-Expression-Recognition.Pytorch: dependency diagnosis | The repository had no conventional modern manifest. Lazarus used a labeled README fallback and surfaced the real Python 2.7 constraint and legacy PyTorch >= 0.2.0 lower bound without falsely calling the lower bound an exact pin. |
-| Facial-Expression-Recognition.Pytorch: CI diagnosis | No CI configuration was detected. The absence appeared as a structured finding, not an empty result or an execution error. |
-| Facial-Expression-Recognition.Pytorch: issue cluster | Related Python 3 compatibility issues were connected as a semantic cluster and cross-referenced to the Python 2.7 Health Report finding without being falsely declared duplicates. |
-| Facial-Expression-Recognition.Pytorch: old PR | PR #95 was evaluated using available metadata and was not dismissed merely because it was inactive or conflicted. |
-| Pokedex: conventional manifests | Lazarus parsed the real setup.py and package.json rather than falling back to README text. It also detected a packaging console-script entry point, not only argparse scripts. |
-| Pokedex: duplicate-resistance test | Migrated Redmine header boilerplate had inflated text-overlap scoring. Lazarus was corrected to discount that structural boilerplate before classifying semantic content. |
-| Pokedex: larger backlog | The corrected run retained item-specific rationale at scale, with 127 still-valid items and 18 valuable-but-stalled items rather than collapsing large portions of the backlog into false duplicates. |
-| PypyJS: full preview pipeline | A fresh local clone completed all six stages in preview mode at commit 4532320849881093635075db929240052300a844. |
-| PypyJS: static test detection | The static inventory recognized lib/tests/index.html and src/tests/tests.js, demonstrating that test discovery is not limited to Python test filenames. |
-| PypyJS: language-aware triage | JavaScript runtime requests were not misclassified as game-data issues; the completed report remained internally consistent. |
-| Cross-repository safety | Supplying two individually valid artifacts from different repositories causes synthesis to reject the identity conflict rather than silently omit one or produce a blended report. |
-| Malformed-data safety | Top-level JSON arrays, null list fields, and all-non-object snapshot entries produce clear validation failures or visible limitations instead of a clean-looking empty success report. |
-| Artifact-browser safety | The dashboard serves only a bounded set of Lazarus-generated reports, receipts, logs, and evidence directories. It does not expose the local clone or its Git metadata. |
+| Facial-Expression full pipeline | A saved full `run_receipt.json` records `status: completed` for clone, diagnose, documentation generation, triage, and synthesis; the PR stage is correctly recorded as `preview_generated`. The resolved checkout was `fefe6653f3e09912693a73c54e6a8247adca3090`. |
+| Pokedex full pipeline | A saved full `run_receipt.json` records the same completed five stages and one draft-PR preview for `veekun/pokedex`, resolved at `cc483e1877f22b8c19ac27ec0ff5fafd09c5cd5b`. |
+| Facial-Expression diagnosis | The Health Report records no conventional dependency manifest, a README-declared `Python ==2.7`, a lower-bound `Pytorch >=0.2.0`, and no supported repository-local CI configuration. |
+| Facial-Expression triage | The saved report contains 1 `duplicate/resolved`, 0 `obsolete`, 40 `still valid`, and 3 `valuable-but-stalled-by-inactivity` classifications. It retains PR #70 and conflicted PR #95 for human review rather than dismissing them because of age or conflict state. |
+| Pokedex diagnosis | The Health Report records 2 conventional dependency manifests, including exact `construct ==2.5.3`, several bounded or lower-bound dependency declarations, GitHub Actions configuration, and a Travis configuration whose operational status remains unverified. |
+| Pokedex triage | The saved report contains 1 `duplicate/resolved`, 0 `obsolete`, 126 `still valid`, and 18 `valuable-but-stalled-by-inactivity` classifications after tracker-migration boilerplate was excluded from duplicate similarity scoring. |
+| Identity mismatch rejection | A saved blocked receipt records `status: blocked` and a reason beginning `Repository identity mismatch: documentation code-structure inventory=...; expected_upstream='WuJie1010/Facial-Expression-Recognition.Pytorch'`. |
+| Malformed JSON handling | Saved audit inputs cover a top-level JSON array, a null manifest collection, `detailed_pull_requests: null`, `issues: null`, and an all-invalid issue list. These inputs are validation cases, not successful empty repositories. |
+| Facial-Expression documentation PR | A saved live receipt records draft PR #1 at `https://github.com/Master-Zero1/Facial-Expression-Recognition.Pytorch/pull/1`, created from commit `70760af8f4d9b671bbe3eb944a2c4c86abdb6031`. Its candidate list contains only `README.md`, `ARCHITECTURE.md`, and `CONTRIBUTING.md`. |
+| Pokedex documentation PR | A saved live receipt records draft PR #1 at `https://github.com/Master-Zero1/pokedex/pull/1`, created from commit `39527fb16dedb2041d8e022214ef84bbb403a513`. Its candidate list contains the same three documentation files. |
+| PypyJS regression | A later full preview regression against `pypyjs/pypyjs` completed all six pipeline stages at `4532320849881093635075db929240052300a844`; its static inventory found JavaScript and HTML test assets without executing them. |
 
-### What a successful full preview proves
+## Tech stack
 
-A completed preview proves that Lazarus:
+### Core package
 
-- cloned and identified the requested repository;
-- created each expected report artifact;
-- kept generated artifacts associated with the right repository;
-- completed documentation generation and triage without executing target code;
-- produced a guarded draft-PR preview instead of a surprise write; and
-- synthesized the generated evidence into a Revival Report.
+The published package is named `lazarus-revival` and is currently version
+`0.1.0`.
 
-It does **not** prove that the target project builds on a modern machine, that
-every issue is correctly resolved, or that an old CI service still works.
-Those are human follow-up decisions and are stated as such in the reports.
+- Python `>=3.10`
+- Setuptools build backend
+- System Git CLI for cloning
+- **Zero required third-party runtime dependencies**: `pyproject.toml`
+  declares `dependencies = []`
 
-## Dashboard and Evidence PDF
+Core console commands:
 
-Lazarus includes an optional local dashboard for a hackathon demonstration and
-maintainer handoff.
+```text
+lazarus
+lazarus-clone
+lazarus-diagnose
+lazarus-docs
+lazarus-triage
+lazarus-pr
+lazarus-synthesize
+```
 
-The dashboard lets a user:
+### Optional local API
 
-1. launch a run by submitting a repository URL, owner, and repository name;
-2. watch the six stages update in a live pipeline view;
-3. inspect recent runs stored in a local SQLite database;
-4. browse the reports, receipts, generated documentation, and safe logs;
-5. cancel an in-progress local run; and
-6. download a styled, detailed Evidence PDF containing the most important
-   reports, inventories, documentation drafts, and receipts.
+The `api` optional dependency group declares:
 
-The dashboard is a client of the local HTTP API only. The API starts the
-existing lazarus command as a separate subprocess, preserving pipeline
-isolation. It monitors the process and the final run receipt: a process that
-exits without a valid receipt becomes an error, never a false “completed”
-status.
+```text
+fastapi >= 0.110
+uvicorn >= 0.27
+pydantic >= 2.0
+```
 
-For safety, the browser cannot fetch arbitrary files from a run directory.
-Path traversal, symbolic-link escapes, the clone checkout, and its .git
-metadata are excluded from the public artifact surface.
+`lazarus-api` starts the local HTTP application. Its current routes are:
 
-### Important demo limitation
+```text
+GET  /health
+POST /runs
+GET  /runs
+GET  /runs/{run_id}
+POST /runs/{run_id}/cancel
+GET  /runs/{run_id}/artifacts
+GET  /runs/{run_id}/artifacts/{artifact_path}
+```
 
-The optional API is intentionally unauthenticated and uses permissive CORS for
-local development. It listens on 127.0.0.1 by default. Do not expose it to a
-network or deploy it as a shared service until authentication, authorization,
-and restrictive CORS rules are added.
-
-## Safety is a product feature
-
-Lazarus handles untrusted repositories, so its boundaries are explicit.
-
-| Rule | How Lazarus enforces it |
-| --- | --- |
-| Do not execute unknown repository code | Diagnosis and documentation inventory use static file and AST inspection. |
-| Do not confuse untrusted text with instructions | README text, code comments, issue bodies, and PR descriptions stay data. They do not control tool calls or report format. |
-| Do not write to the wrong repository | Clone identity and all report-artifact identities are checked against expected ownership information. |
-| Do not create a surprise PR | The PR stage is preview-first and needs real operator approval for an actual draft. |
-| Do not write source code | The only allowlisted PR candidates are three documentation files. |
-| Do not merge | No merge endpoint or merge operation exists in the pipeline. |
-| Do not hide missing evidence | Unknowns, limitations, malformed inputs, partial results, and halted stages are written into output. |
-| Do not expose a local clone through the dashboard | The API checks path containment and separately allowlists public artifact paths. |
-
-## Technology
-
-### Core pipeline
-
-- Python 3.10+
-- Python standard library only for the core runtime
-- Git CLI for read-only cloning
-- Setuptools src-layout package
-- Console commands for the full pipeline and individual stages
-
-### Optional API
-
-The local transport layer is installed separately with the api extra:
-
-- FastAPI >= 0.110
-- Uvicorn >= 0.27
-- Pydantic >= 2.0
-- SQLite through Python's standard library
+Run metadata is stored locally with Python’s built-in SQLite support. The API
+starts each pipeline run as a separate `lazarus` subprocess, captures logs in
+the run directory, and polls for a final receipt.
 
 ### Frontend
 
-The dashboard is a Vite + React application. It is deliberately separate from
-the core pipeline and speaks only to the local API. The visual design includes
-a mission-control interface, a safe ambient visual fallback, motion-reduction
-support, Markdown report rendering, artifact browsing, and client-side PDF
-generation.
+The frontend is a Vite + React + TypeScript application with Tailwind CSS.
 
-See frontend/README.md for exact frontend dependencies, browser fallback
-details, and its manual verification checklist.
+Current direct runtime dependencies are:
 
-## Run Lazarus locally
+```text
+react             18.3.1
+react-dom         18.3.1
+react-markdown     9.1.0
+remark-gfm         4.0.1
+jspdf              4.2.1
+```
 
-### 1. Install the core pipeline
+Current development dependencies include:
+
+```text
+tailwindcss        3.4.17
+typescript         5.7.3
+vite               8.1.5
+@vitejs/plugin-react 6.0.3
+```
+
+The dashboard launches, observes, cancels, and reads artifacts from local API
+runs. It renders Markdown reports, displays safe generated artifacts, and can
+create a searchable client-side Evidence PDF. The browser does not receive
+GitHub credentials and does not write directly to GitHub.
+
+## Safety and non-negotiables
+
+Lazarus is deliberately conservative around untrusted repositories.
+
+- **No target-source modification.** It does not modify application source
+  files, dependency manifests, tests, CI files, licenses, or configuration.
+- **No target-code execution.** Diagnosis and documentation generation use
+  static inspection; the pipeline does not install unknown dependencies or run
+  the target project.
+- **Repository identity is bound.** `clone_repo.py` creates a read-only local
+  checkout. The orchestrator validates that checkout and downstream artifacts
+  against the expected `owner/repository` identity before continuing.
+- **Untrusted content stays data.** README text, code comments, issue bodies,
+  and pull-request descriptions are never interpreted as instructions.
+- **No automatic live PR from the pipeline.** The orchestrator uses PR preview
+  mode and never passes `--execute` or operator approval.
+- **A real PR is narrow and explicit.** The execution path requires
+  `--execute`, the exact `I_APPROVE_DRAFT_PR` approval token, fork validation,
+  expected-upstream validation, and a documentation-only allowlist.
+- **No merge operation.** Lazarus creates only draft pull requests when
+  explicitly authorized. It never merges them.
+- **No arbitrary dashboard file access.** The API checks path containment and
+  separately allowlists public generated artifacts. The local clone and `.git`
+  metadata are not browser-visible.
+- **No hidden success.** Missing, malformed, mismatched, or halted artifacts
+  are surfaced as errors, limitations, or partial-report conditions.
+
+## Setup and run locally
+
+### Core pipeline
 
 From PowerShell:
 
-    git clone https://github.com/Master-Zero1/lazarus.git
-    cd lazarus
-    python -m venv .venv
-    .\.venv\Scripts\Activate.ps1
-    python -m pip install --upgrade pip
-    python -m pip install -e .
+```powershell
+git clone https://github.com/Master-Zero1/lazarus.git
+cd lazarus
 
-The core package requires Python 3.10 or later and the system Git CLI. It has
-no mandatory third-party runtime dependencies.
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 
-### 2. Run a safe pipeline preview
+python -m pip install --upgrade pip
+python -m pip install -e .
 
-Use a repository URL and the identity you expect that URL to represent:
+lazarus --help
+```
 
-    lazarus <repository-url> --owner <github-owner> --repo <repository-name> --output-dir .\runs\example
+Run a preview pipeline:
 
-For an initial run, keep the documentation-PR stage in its preview behavior.
-Review the generated materials before ever considering an approved draft PR.
+```powershell
+lazarus <repository-url> `
+  --owner <github-owner> `
+  --repo <repository-name> `
+  --output-dir .\lazarus_runs\example
+```
 
-Installed commands:
+For example, a read-only preview against the Facial-Expression fixture’s
+upstream identity uses:
 
-| Command | What it does |
-| --- | --- |
-| lazarus | Runs the full ordered pipeline. |
-| lazarus-clone | Creates a read-only clone and JSON receipt. |
-| lazarus-diagnose | Produces a Health Report from deterministic findings. |
-| lazarus-docs | Produces source-backed documentation drafts. |
-| lazarus-triage | Classifies supplied issue and PR snapshots. |
-| lazarus-pr | Previews, or with approval creates, a guarded documentation draft PR. |
-| lazarus-synthesize | Produces a Revival Report from prior artifacts only. |
+```powershell
+lazarus https://github.com/WuJie1010/Facial-Expression-Recognition.Pytorch.git `
+  --owner WuJie1010 `
+  --repo Facial-Expression-Recognition.Pytorch `
+  --output-dir .\lazarus_runs\facial-preview
+```
 
-Use --help on any command for its complete argument contract.
+The orchestrator does not create a live PR. Its PR stage produces a preview
+receipt only.
 
-### 3. Start the local API
+### Optional API
 
-Install the optional API extra:
+Install the optional API dependencies:
 
-    python -m pip install -e ".[api]"
-    lazarus-api
+```powershell
+python -m pip install -e ".[api]"
+lazarus-api
+```
 
-The API listens on http://127.0.0.1:8000 by default. The database path,
-output root, port, and host can be set with the documented LAZARUS_API
-environment variables.
+The API defaults to `127.0.0.1:8000`.
 
-### 4. Start the dashboard
+### Dashboard
 
-Open another terminal:
+In another PowerShell terminal:
 
-    cd frontend
-    Copy-Item .env.example .env
-    npm ci
-    npm run dev
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm.cmd install
+npm.cmd run dev
+```
 
-Set VITE_API_BASE_URL in frontend/.env if the API is not running on
-http://localhost:8000.
+The dashboard normally appears at `http://localhost:5173`. Set
+`VITE_API_BASE_URL` in `frontend/.env` if the API is not available at
+`http://localhost:8000`.
 
 ## Project structure
 
-    lazarus/
-    ├── AGENTS.md
-    │   Project boundaries, workflow rules, and cross-tool instructions
-    │
-    ├── directives/
-    │   Human-readable Layer 1 SOP source files
-    │
-    ├── src/lazarus/
-    │   ├── agents/
-    │   │   Layer 2: diagnosis, documentation, triage, PR, synthesis,
-    │   │   and full-pipeline orchestration
-    │   ├── execution/
-    │   │   Layer 3: deterministic clone, inventory, parsing, GitHub read,
-    │   │   dependency, CI, and PR-preparation scripts
-    │   ├── directives/
-    │   │   Packaged SOP copies used when Lazarus is installed
-    │   └── api/
-    │       Optional FastAPI transport, SQLite store, and subprocess runner
-    │
-    ├── frontend/
-    │   React dashboard, API client, visual components, and Evidence PDF export
-    │
-    ├── .codex/skills/
-    │   Project-specific lessons for repository diagnosis, documentation,
-    │   issue triage, and future safe code modification
-    │
-    ├── test_repos/
-    │   Local verification fixtures; ignored by Git
-    ├── output/
-    │   Generated reports and documentation drafts; ignored by Git
-    ├── .tmp/
-    │   Disposable intermediate artifacts; ignored by Git
-    │
-    ├── pyproject.toml
-    │   Package metadata, optional API extra, and console entry points
-    └── README.md
+```text
+lazarus/
+├── AGENTS.md
+│   Project boundaries and operating instructions
+├── LICENSE
+├── README.md
+├── pyproject.toml
+│   Package metadata, optional API dependencies, and console commands
+├── directives/
+│   Layer 1 source SOPs: diagnosis, documentation, triage, draft PR,
+│   synthesis, and full-pipeline orchestration
+├── src/
+│   └── lazarus/
+│       ├── agents/
+│       │   Layer 2 orchestration, identity validation, and report synthesis
+│       ├── execution/
+│       │   Layer 3 deterministic clone, inventory, fetch, parse, and
+│       │   guarded draft-PR scripts
+│       ├── directives/
+│       │   Packaged runtime copies of the SOPs
+│       └── api/
+│           Optional FastAPI application, SQLite store, and subprocess runner
+├── frontend/
+│   Vite + React dashboard, API client, report viewer, and Evidence PDF export
+├── .codex/skills/
+│   Project-specific diagnosis, documentation, triage, and future safe-change
+│   guidance
+├── test_repos/
+│   Local verification clones; ignored by Git
+├── output/
+│   Generated reports and documentation drafts; ignored by Git
+├── .tmp/
+│   Disposable verification artifacts; ignored by Git
+├── lazarus_runs/
+│   Local API run artifacts; ignored by Git
+└── lazarus_api.sqlite3
+    Local API state; ignored by Git
+```
 
-The root directives and packaged directives are intentionally kept aligned so
-an editable installation and an installed wheel use the same stage rules.
+## Known limitations
 
-## How Codex and GPT-5.6 assisted this project
+These are deliberate current boundaries, not hidden caveats.
 
-Lazarus was built by Master-Zero1 with Codex, powered by GPT-5.6, as an
-engineering collaborator.
-
-That collaboration was not “ask an AI to generate a repository and hope it
-works.” The project was built stage by stage against real repositories, with
-the next capability added only after the previous one had been checked. Codex
-helped with code inspection, deterministic implementation, threat modeling,
-negative testing, report design, API and dashboard integration, and
-documentation.
-
-Some concrete examples:
-
-- A real repository without requirements.txt, setup.py, or pyproject.toml led
-  to the README-fallback design. The output now labels that fallback instead
-  of pretending it is a parsed manifest.
-- A real lower-bound PyTorch statement led to the pin-versus-lower-bound rule,
-  preventing misleading dependency language.
-- A large Pokedex issue set exposed false duplicate matches from shared
-  “migrated from Redmine” boilerplate. The overlap analysis was corrected to
-  score meaningful content rather than structural headers.
-- Related Python 3 requests showed why semantic clustering must remain
-  separate from duplicate detection.
-- Artifact-security review found that a dashboard must not browse an entire
-  clone directory. The API now uses both containment checks and a separate
-  allowlist.
-- Cross-repository synthesis tests ensured that two valid artifacts from
-  different projects fail clearly instead of producing a believable but
-  invalid combined report.
-- The Evidence PDF was added as a reviewable demo artifact while preserving
-  the core pipeline's read-only and approval-gated boundaries.
-
-The human owner remained in control of scope, live-action authorization,
-review, visual decisions, and every commit. Codex supplied acceleration and
-rigorous iteration; it did not become an autonomous maintainer with authority
-to alter somebody else's project.
-
-## Known limits
-
-Lazarus is deliberately useful before a revival, not a replacement for the
-revival itself.
-
-- It does not install unknown dependencies or run an unknown repository's
-  tests, so it cannot prove runtime compatibility.
-- It can report declared CI files but cannot prove that a third-party CI
-  platform still works.
-- Triage conclusions are limited to the API data actually fetched. If comment
-  bodies or PR diffs are absent, that limitation is named.
-- Generated documentation is source-backed, not a guarantee that every
-  command works on a current operating system.
-- The API and dashboard are local demo tooling, not a public multi-user
-  service.
-- The only possible PR is documentation-only, explicitly authorized, and
-  always a draft. Lazarus never merges.
+- The API has **no authentication** and permissive CORS for local demo use.
+  It listens on loopback by default and must not be exposed publicly until
+  authentication, authorization, and stricter deployment controls exist.
+- Background pipeline monitoring is in-process and local. It is not a
+  distributed job queue. Restart recovery is best-effort and marks a run as an
+  error if its final state cannot be determined.
+- Lazarus does not execute target code, install dependencies, or run target
+  tests. It can report static evidence, not prove current runtime compatibility.
+- CI configuration presence is not proof that CI currently works.
+- Triage conclusions are limited to the GitHub metadata actually fetched. If
+  comment bodies, review threads, or pull-request diffs were not fetched, the
+  reports state that limitation.
+- Automated source-code modification is intentionally deferred. The
+  project’s safe-code-modification guidance exists specifically because that
+  capability is not part of the current release.
 
 ## Contributing
 
-The project values trustworthy boundaries more than flashy automation.
+Lazarus should remain more trustworthy than it is aggressive.
 
 Before contributing:
 
-1. read AGENTS.md;
-2. keep target-repository changes out of scope unless a future, separately
-   designed safe-modification capability is approved;
-3. preserve the separation between directives, orchestration, and
-   deterministic execution;
-4. test negative and malformed-input cases alongside the happy path;
-5. make uncertainty visible in reports rather than filling it with inference;
-   and
-6. keep the root and packaged copies of any changed directive aligned.
+1. read `AGENTS.md`;
+2. keep directives, orchestration, and deterministic execution separate;
+3. preserve read-only behavior against target repositories;
+4. add negative tests for malformed input, identity mismatch, and unsafe paths;
+5. state uncertainty in reports rather than filling gaps with inference; and
+6. keep root directives aligned with packaged runtime copies.
 
-For dashboard-specific setup, visual effects, and frontend checks, read
-frontend/README.md.
-
-## License
-
-Lazarus is released under the MIT License. See LICENSE.
+For frontend-specific setup and manual checks, read `frontend/README.md`.
 
 ---
 
 <div align="center">
 
 Built by <a href="https://github.com/Master-Zero1">Master-Zero1</a><br />
-Built with Codex and GPT-5.6 as an engineering collaborator
+Built with Codex and GPT-5.6 as an engineering collaborator<br />
+Hackathon entry: OpenAI Build Week
 
 </div>
