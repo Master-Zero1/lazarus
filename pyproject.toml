@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lazarus-revival"
+version = "0.1.0"
+description = "Evidence-backed revival reporting for stale open-source repositories"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Lazarus contributors" },
+]
+keywords = ["documentation", "maintenance", "open-source", "repository-health", "triage"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Master-Zero1/lazarus"
+Repository = "https://github.com/Master-Zero1/lazarus"
+Issues = "https://github.com/Master-Zero1/lazarus/issues"
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "pydantic>=2.0",
+]
+
+[project.scripts]
+lazarus = "lazarus.agents.orchestrator:main"
+lazarus-diagnose = "lazarus.agents.diagnosis_agent:main"
+lazarus-docs = "lazarus.agents.docs_agent:main"
+lazarus-triage = "lazarus.agents.triage_agent:main"
+lazarus-pr = "lazarus.agents.pr_agent:main"
+lazarus-synthesize = "lazarus.agents.synthesis_agent:main"
+lazarus-clone = "lazarus.execution.clone_repo:main"
+# Requires: pip install "lazarus-revival[api]"
+lazarus-api = "lazarus.api.app:run_server"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lazarus = ["directives/*.md"]
